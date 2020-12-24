@@ -23,7 +23,7 @@ class QuoteModel(db.Model):
     def __repr__(self):
         return f"Quote(content={content}, author = {author}, likes = {likes} religious = {religious}, science = {science})"
 
-db.create_all()
+#db.create_all()
 
 quotes_put_args = reqparse.RequestParser()
 quotes_put_args.add_argument("content", type = str, help = "Quote content", required = True)
