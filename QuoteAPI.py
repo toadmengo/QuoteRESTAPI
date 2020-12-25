@@ -3,6 +3,8 @@ from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 import random
+import datetime
+import json
 
 password = 'quoteapp'
 getkey = 'get'
@@ -10,7 +12,10 @@ getkey = 'get'
 app = Flask(__name__)
 api = Api(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_BINDS'] = {'two': 'sqlite:///usermodel.db'}
+
 db = SQLAlchemy(app)
+
 
 class QuoteModel(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -20,8 +25,13 @@ class QuoteModel(db.Model):
     religious = db.Column(db.Boolean, nullable = True)
     science = db.Column(db.Boolean, nullable = True)
 
-    def __repr__(self):
-        return f"Quote(content={content}, author = {author}, likes = {likes} religious = {religious}, science = {science})"
+
+class UserModel(db.Model):
+    __bind_key__ = 'two'
+    id = db.Column(db.Integer, primary_key = True)
+    firstQuoteID = db.Column(db.Integer)
+    secondQuoteID = db.Column(db.Integer)
+    thirdQuoteID = db.Column(db.Integer)
 
 #db.create_all()
 
@@ -46,6 +56,10 @@ resource_fields = {
     'likes': fields.Integer,
     'religious': fields.Boolean,
     'science': fields.Boolean
+}
+
+resource_fields_userID = {
+    'id': fields.Integer
 }
 
 class Quotes(Resource):
@@ -82,11 +96,7 @@ class Quotes(Resource):
                 abort(404, message='DNE')
             if args['likes']:
                 totalLikes = result.likes
-                result.likes = args['likes'] +totalLikes
-        #if args['content']:
-         #   result.content = args['content']
-        #if args['author']:
-        #    result.author = args['author']
+                result.likes = args['likes'] + totalLikes
             db.session.commit()
             return
         return
@@ -108,28 +118,65 @@ class Quotes(Resource):
 
 api.add_resource(Quotes, "/quotes/<int:quote_id>/<string:key>")
 
-class randomQuotes(Resource):
-    @marshal_with(resource_fields)
-    def get(self, key):
-        if key == "random":
+class UserData(Resource):
+
+    @marshal_with(resource_fields_userID)
+    def post(self, userID, currentTime, setTime):
+        if userID == 0:
+            usercount = UserModel.query.count()
+            newUserID = usercount + 1
+
             count = QuoteModel.query.count()
-            print(count)
             randomIDs = random.sample(range(1, count), 3)
-            randomID = 0
-            result = []
-            for quote_id in randomIDs:
-                quote_query = QuoteModel.query.filter_by(id = quote_id).first()
-                while not quote_query or randomID in randomIDs:
-                    randomID = random.randint(0, count)
-                    quote_query = QuoteModel.query.filter_by(id = quote_id).first()
 
-                result.append(quote_query)
-            return result
+            newUser = UserModel(id = newUserID, firstQuoteID = randomIDs[0], secondQuoteID = randomIDs[1], thirdQuoteID = randomIDs[2])
+            db.session.add(newUser)
+            db.session.commit()
+            
+            userID = newUserID
+
+        idDict = {"id": userID}
+        print(idDict)
+        jsonObj = json.dumps(idDict)
+        return idDict
+
+    @marshal_with(resource_fields)
+    def get(self, userID, currentTime, setTime):
+        setTimeComponents = setTime.split("T")
+        setTimeDate = setTimeComponents[0].split("-")
+        setTimeTime = setTimeComponents[1].split(":")
+        setTime = datetime.datetime(int(setTimeDate[0]), int(setTimeDate[1]), int(setTimeDate[2]), int(setTimeTime[0]), 0)
+        currentTimeComponents = currentTime.split("T")
+        currentTimeDate = currentTimeComponents[0].split("-")
+        currentTimeTime = currentTimeComponents[1].split(":")
+        currentTime = datetime.datetime(int(currentTimeDate[0]), int(currentTimeDate[1]), int(currentTimeDate[2]), int(currentTimeTime[0]), 0)
+        print(setTime, currentTime)
+        if currentTime >= setTime + datetime.timedelta(days=1):
+            count = QuoteModel.query.count()
+            randomIDs = random.sample(range(1, count), 3)
+            result = UserModel.query.filter_by(id = userID).first()
+            result.firstQuoteID = randomIDs[0]
+            result.secondQuoteID = randomIDs[1]
+            result.thirdQuoteID = randomIDs[2]
+            db.session.commit()
         else:
-            return "incorrect key"
+            randomIDs = []
+            result = UserModel.query.filter_by(id = userID).first()
+            randomIDs.append(result.firstQuoteID)
+            randomIDs.append(result.secondQuoteID)
+            randomIDs.append(result.thirdQuoteID)
 
-api.add_resource(randomQuotes, "/getRandomQuotes/<string:key>")
+        result = []
+        for quote_id in randomIDs:
+            quote_query = QuoteModel.query.filter_by(id = quote_id).first()
+            result.append(quote_query)
+        print(result)
+        return result
+
+
+api.add_resource(UserData, "/UserGet/<int:userID>/<string:currentTime>/<string:setTime>")
 
 if __name__ == "__main__":
     app.run()
     #Debug off
+
