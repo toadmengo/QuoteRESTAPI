@@ -121,7 +121,7 @@ api.add_resource(Quotes, "/quotes/<int:quote_id>/<string:key>")
 class UserData(Resource):
 
     @marshal_with(resource_fields_userID)
-    def post(self, userID, currentTime, setTime):
+    def post(self, userID, newQuote):
         if userID == 0:
             usercount = UserModel.query.count()
             newUserID = usercount + 1
@@ -141,17 +141,8 @@ class UserData(Resource):
         return idDict
 
     @marshal_with(resource_fields)
-    def get(self, userID, currentTime, setTime):
-        setTimeComponents = setTime.split("T")
-        setTimeDate = setTimeComponents[0].split("-")
-        setTimeTime = setTimeComponents[1].split(":")
-        setTime = datetime.datetime(int(setTimeDate[0]), int(setTimeDate[1]), int(setTimeDate[2]), int(setTimeTime[0]), 0)
-        currentTimeComponents = currentTime.split("T")
-        currentTimeDate = currentTimeComponents[0].split("-")
-        currentTimeTime = currentTimeComponents[1].split(":")
-        currentTime = datetime.datetime(int(currentTimeDate[0]), int(currentTimeDate[1]), int(currentTimeDate[2]), int(currentTimeTime[0]), 0)
-        print(setTime, currentTime)
-        if currentTime >= setTime + datetime.timedelta(days=1):
+    def get(self, userID, newQuote):
+        if newQuote:
             count = QuoteModel.query.count()
             randomIDs = random.sample(range(1, count), 3)
             result = UserModel.query.filter_by(id = userID).first()
@@ -174,7 +165,7 @@ class UserData(Resource):
         return result
 
 
-api.add_resource(UserData, "/UserGet/<int:userID>/<string:currentTime>/<string:setTime>")
+api.add_resource(UserData, "/UserGet/<int:userID>/<bool:newQuote>")
 
 if __name__ == "__main__":
     app.run()
