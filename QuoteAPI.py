@@ -142,7 +142,7 @@ class UserData(Resource):
 
     @marshal_with(resource_fields)
     def get(self, userID, newQuote):
-        if newQuote:
+        if newQuote == 1:
             count = QuoteModel.query.count()
             randomIDs = random.sample(range(1, count), 3)
             result = UserModel.query.filter_by(id = userID).first()
@@ -165,9 +165,6 @@ class UserData(Resource):
         return result
 
 
-api.add_resource(UserData, "/UserGet/<int:userID>/<bool:newQuote>")
-
-if __name__ == "__main__":
-    app.run()
+api.add_resource(UserData, "/UserGet/<int:userID>/<int:newQuote>")
     #Debug off
 
