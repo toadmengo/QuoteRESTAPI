@@ -166,5 +166,9 @@ class UserData(Resource):
 
 
 api.add_resource(UserData, "/UserGet/<int:userID>/<int:newQuote>")
+
+
+if __name__ == "__main__":
+    app.run()
     #Debug off
 
