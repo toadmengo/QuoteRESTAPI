@@ -33,7 +33,7 @@ class UserModel(db.Model):
     secondQuoteID = db.Column(db.Integer)
     thirdQuoteID = db.Column(db.Integer)
 
-#db.create_all()
+db.create_all()
 
 quotes_put_args = reqparse.RequestParser()
 quotes_put_args.add_argument("content", type = str, help = "Quote content", required = True)
